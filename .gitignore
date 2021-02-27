@@ -1,6 +1,7 @@
 cmake-build-debug
-CMakeLists.txt
 .idea
+CMakeLists.txt
+
 # Prerequisites
 *.d
 
@@ -33,4 +34,4 @@ CMakeLists.txt
 *.exe
 *.out
 *.app
-Triangle
+build

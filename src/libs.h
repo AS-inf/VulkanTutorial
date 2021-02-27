@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <vector>
 #include <iostream>
+#include <cstring>
 
 extern const unsigned int WIDTH;
 extern const  unsigned int  HEIGHT;
