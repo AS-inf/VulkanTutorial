@@ -18,7 +18,7 @@ extern const  unsigned int  HEIGHT;
 
 extern const std::vector <const char*> validationLayers;
 
-extern const bool enabledValidationLayers;
+extern const bool enableValidationLayers;
 
 
 

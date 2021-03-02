@@ -3,13 +3,13 @@ CFLAGS = -std=c++17 -I$(VULKAN_SDK_PATH)/include -g
 LDFLAGS = -L$(VULKAN_SDK_PATH)/lib `pkg-config --static --libs glfw3` -lvulkan
 
 
-compilation: src
+compilation: src clean
 	@mkdir build
 	g++ $(CFLAGS) -o build/Triangle src/main.cpp src/vulkanApp.h src/vulkanApp.cpp src/libs.h $(LDFLAGS)
 
 .PHONY: clean
 
-build/Triangle: compilation
+Triangle: compilation
 	@LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib
 		@VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/vulkan/explicit_layer.d
 		@echo
@@ -17,6 +17,6 @@ build/Triangle: compilation
 
 
 clean:
-	rm -f build/Triangle
+	rm -rf build
 
 

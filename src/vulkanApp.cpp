@@ -46,7 +46,7 @@ bool vulkanApp::checkValidationLayerSupport()
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
     
-    for(const char* layerName :validationLayers)
+    for(const char* layerName : validationLayers)
     {
         bool layerFound = false;
         for(const auto& layerProperties : availableLayers)
@@ -85,6 +85,29 @@ void vulkanApp::createInstance()
     createInfo.ppEnabledExtensionNames= glfwExtensions;
     createInfo.enabledExtensionCount= 0;
     
+    if(enableValidationLayers && !checkValidationLayerSupport())
+    {
+        throw std::runtime_error("validation layers not available");
+    }
+    
+    if(enableValidationLayers)
+    {
+        std::cout<<validationLayers.data()<<std::endl;
+        std::cout<<validationLayers.size()<<std::endl;
+        createInfo.enabledLayerCount= static_cast<unsigned int>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+    }
+    else
+    {
+         createInfo.enabledLayerCount = 0;
+    }
+    
+    if(vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to create instance of vulkanApp!");
+    }
+    
+    
     unsigned int extensionCount= 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
     std::vector<VkExtensionProperties> extensions(extensionCount);
@@ -95,13 +118,5 @@ void vulkanApp::createInstance()
         std::cout<<'\t'<<extension.extensionName<<'\n';
     }
     
-    
-    if(vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create instance of vulkanApp!");
-    }
-    if(enabledValidationLayers && !checkValidationLayerSupport())
-    {
-        throw std::runtime_error("validation layers not available");
-    }
+
 }
