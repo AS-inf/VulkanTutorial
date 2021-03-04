@@ -1,9 +1,7 @@
 //
 // Created by xxx on 26.02.2021.
 //
-
 #include "vulkanApp.h"
-
 
 void vulkanApp::run()
 {
@@ -23,6 +21,7 @@ void vulkanApp::initWindow()
 void vulkanApp::initVulkan()
 {
     createInstance();
+    setupDebugMessenger();
 }
 void vulkanApp::mainLoop()
 {
@@ -32,12 +31,7 @@ void vulkanApp::mainLoop()
     }
 }
 
-void vulkanApp::cleanup()
-{
-    vkDestroyInstance(instance, nullptr);
-    glfwDestroyWindow(window);
-    glfwTerminate();
-}
+
 
 bool vulkanApp::checkValidationLayerSupport()
 {
@@ -65,6 +59,22 @@ bool vulkanApp::checkValidationLayerSupport()
     
     return true;
 }
+
+std::vector<const char*> vulkanApp::getRequiredExtensions()
+{
+    unsigned int glfwExtensionsCount = 0;
+    const char** glfwExtensions;
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionsCount);
+    std::vector<const char*> extensions (glfwExtensions, glfwExtensions + glfwExtensionsCount);
+    if(enableValidationLayers)
+    {
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+    return extensions;
+}
+
+
+
 void vulkanApp::createInstance()
 {
     VkApplicationInfo appInfo{};
@@ -92,8 +102,6 @@ void vulkanApp::createInstance()
     
     if(enableValidationLayers)
     {
-        std::cout<<validationLayers.data()<<std::endl;
-        std::cout<<validationLayers.size()<<std::endl;
         createInfo.enabledLayerCount= static_cast<unsigned int>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
     }
@@ -101,6 +109,10 @@ void vulkanApp::createInstance()
     {
          createInfo.enabledLayerCount = 0;
     }
+    auto extensions = getRequiredExtensions();
+    createInfo.enabledExtensionCount = static_cast<unsigned int>(extensions.size());
+    createInfo.ppEnabledExtensionNames = extensions.data();
+    
     
     if(vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
     {
@@ -108,15 +120,45 @@ void vulkanApp::createInstance()
     }
     
     
-    unsigned int extensionCount= 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-    std::vector<VkExtensionProperties> extensions(extensionCount);
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-    
-    for(const auto& extension: extensions)
-    {
-        std::cout<<'\t'<<extension.extensionName<<'\n';
-    }
-    
+//    unsigned int extensionCount= 0;
+//    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+//    std::vector<VkExtensionProperties> extensions(extensionCount);
+//    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+//
+//    for(const auto& extension: extensions)
+//    {
+//        std::cout<<'\t'<<extension.extensionName<<'\n';
+//    }
 
+}
+
+void vulkanApp::setupDebugMessenger()
+{
+    if(!enableValidationLayers) return;
+    VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+    createInfo.sType= VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.pfnUserCallback = debugCallback;
+    createInfo.pUserData = nullptr;
+}
+
+VKAPI_ATTR VkBool32 VKAPI_CALL vulkanApp::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                        void *pUserData)
+{
+    std::cerr<<"validation layer: "<<pCallbackData->pMessage<<std::endl;
+    return VK_FALSE;
+}
+
+void vulkanApp::cleanup()
+{
+    vkDestroyInstance(instance, nullptr);
+    glfwDestroyWindow(window);
+    glfwTerminate();
 }

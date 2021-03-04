@@ -17,12 +17,20 @@ private:
 	
     GLFWwindow* window;
     VkInstance instance;
+    VkDebugUtilsMessengerEXT debugMessenger;
     void initWindow();
     void initVulkan();
     void mainLoop();
     void cleanup();
     bool checkValidationLayerSupport();
     void createInstance();
+    void setupDebugMessenger();
+    std::vector<const char*> getRequiredExtensions();
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                        void *pUserData);
+
 };
 
 
