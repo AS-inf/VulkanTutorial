@@ -6,6 +6,9 @@
 #define MAIN_CPP_VULKANAPP_H
 
 #include "libs.h"
+#include "globals.h"
+
+
 
 class vulkanApp
 {

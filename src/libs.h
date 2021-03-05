@@ -13,14 +13,5 @@
 #include <iostream>
 #include <cstring>
 
-extern const unsigned int WIDTH;
-extern const  unsigned int  HEIGHT;
-
-extern const std::vector <const char*> validationLayers;
-
-extern const bool enableValidationLayers;
-
-
-
 
 #endif //MAIN_CPP_LIBS_H

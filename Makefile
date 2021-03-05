@@ -5,7 +5,7 @@ LDFLAGS = -L$(VULKAN_SDK_PATH)/lib `pkg-config --static --libs glfw3` -lvulkan
 
 compilation: src clean
 	@mkdir build
-	g++ $(CFLAGS) -o build/Triangle src/main.cpp src/vulkanApp.h src/vulkanApp.cpp src/libs.h $(LDFLAGS)
+	g++ $(CFLAGS) -o build/Triangle src/main.cpp src/vulkanApp.h src/vulkanApp.cpp src/libs.h src/globals.h src/globals.cpp $(LDFLAGS)
 
 .PHONY: clean
 

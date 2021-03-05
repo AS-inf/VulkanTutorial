@@ -109,6 +109,8 @@ void vulkanApp::createInstance()
     {
          createInfo.enabledLayerCount = 0;
     }
+    
+    
     auto extensions = getRequiredExtensions();
     createInfo.enabledExtensionCount = static_cast<unsigned int>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
@@ -120,15 +122,15 @@ void vulkanApp::createInstance()
     }
     
     
-//    unsigned int extensionCount= 0;
-//    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-//    std::vector<VkExtensionProperties> extensions(extensionCount);
-//    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-//
-//    for(const auto& extension: extensions)
-//    {
-//        std::cout<<'\t'<<extension.extensionName<<'\n';
-//    }
+    unsigned int extensionCount= 0;
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+    std::vector<VkExtensionProperties> extensionsEnumerate(extensionCount);
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensionsEnumerate.data());
+
+    for(const auto& extension: extensionsEnumerate)
+    {
+        std::cout<<'\t'<<extension.extensionName<<'\n';
+    }
 
 }
 
@@ -145,6 +147,11 @@ void vulkanApp::setupDebugMessenger()
                              VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = debugCallback;
     createInfo.pUserData = nullptr;
+    
+    if(CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
+    {
+        throw std::runtime_error("file to set up debug messenger");
+    }
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL vulkanApp::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -158,6 +165,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkanApp::debugCallback(VkDebugUtilsMessageSever
 
 void vulkanApp::cleanup()
 {
+    if(enableValidationLayers) DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
     vkDestroyInstance(instance, nullptr);
     glfwDestroyWindow(window);
     glfwTerminate();
