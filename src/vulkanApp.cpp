@@ -95,19 +95,19 @@ void vulkanApp::createInstance()
     createInfo.ppEnabledExtensionNames= glfwExtensions;
     createInfo.enabledExtensionCount= 0;
     
-    if(enableValidationLayers && !checkValidationLayerSupport())
-    {
-        throw std::runtime_error("validation layers not available");
-    }
-    
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
     if(enableValidationLayers)
     {
+        if (!checkValidationLayerSupport()) throw std::runtime_error("validation layers not available");
         createInfo.enabledLayerCount= static_cast<unsigned int>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
+        populateDebugMessengerCreateInfo(debugCreateInfo);
+        createInfo.pNext= (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
     }
     else
     {
          createInfo.enabledLayerCount = 0;
+         createInfo.pNext =nullptr;
     }
     
     
@@ -138,7 +138,18 @@ void vulkanApp::setupDebugMessenger()
 {
     if(!enableValidationLayers) return;
     VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-    createInfo.sType= VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    populateDebugMessengerCreateInfo(createInfo);
+    
+    if(CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
+    {
+        throw std::runtime_error("file to set up debug messenger");
+    }
+}
+
+void vulkanApp::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+{
+    createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
                                  VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                                  VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
@@ -146,13 +157,9 @@ void vulkanApp::setupDebugMessenger()
                              VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                              VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = debugCallback;
-    createInfo.pUserData = nullptr;
     
-    if(CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
-    {
-        throw std::runtime_error("file to set up debug messenger");
-    }
 }
+
 
 VKAPI_ATTR VkBool32 VKAPI_CALL vulkanApp::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                         VkDebugUtilsMessageTypeFlagsEXT messageType,

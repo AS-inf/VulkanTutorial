@@ -32,7 +32,6 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 
 
 
-
 //GLOBAL VARIABLES
 const unsigned int WIDTH = 800;
 const  unsigned int  HEIGHT = 600;

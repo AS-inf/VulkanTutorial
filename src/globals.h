@@ -21,6 +21,7 @@ void DestroyDebugUtilsMessengerEXT(
         const VkAllocationCallbacks* pAllocator);
 
 
+
 //VARIABLES
 extern const unsigned int WIDTH;
 extern const  unsigned int  HEIGHT;
