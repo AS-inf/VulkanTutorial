@@ -95,6 +95,10 @@ void vulkanApp::createInstance()
     createInfo.ppEnabledExtensionNames= glfwExtensions;
     createInfo.enabledExtensionCount= 0;
     
+    auto extensions = getRequiredExtensions();
+    createInfo.enabledExtensionCount = static_cast<unsigned int>(extensions.size());
+    createInfo.ppEnabledExtensionNames = extensions.data();
+    
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
     if(enableValidationLayers)
     {
@@ -110,18 +114,13 @@ void vulkanApp::createInstance()
          createInfo.pNext =nullptr;
     }
     
-    
-    auto extensions = getRequiredExtensions();
-    createInfo.enabledExtensionCount = static_cast<unsigned int>(extensions.size());
-    createInfo.ppEnabledExtensionNames = extensions.data();
-    
-    
     if(vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create instance of vulkanApp!");
     }
     
     
+    //_____________--Extension List--_______________
     unsigned int extensionCount= 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
     std::vector<VkExtensionProperties> extensionsEnumerate(extensionCount);
@@ -160,14 +159,13 @@ void vulkanApp::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfo
     
 }
 
-
 VKAPI_ATTR VkBool32 VKAPI_CALL vulkanApp::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                         VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                                         void *pUserData)
 {
     std::cerr<<"validation layer: "<<pCallbackData->pMessage<<std::endl;
-    return VK_FALSE;
+    return VK_FALSE;            //always return false (true for errors during callback)
 }
 
 void vulkanApp::cleanup()
