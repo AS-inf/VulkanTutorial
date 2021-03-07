@@ -21,15 +21,10 @@ void DestroyDebugUtilsMessengerEXT(
         const VkAllocationCallbacks* pAllocator);
 
 
-
 //VARIABLES
 extern const unsigned int WIDTH;
 extern const  unsigned int  HEIGHT;
-
 extern const std::vector <const char*> validationLayers;
-
 extern const bool enableValidationLayers;
-
-
 
 #endif //VULKANTUTORIAL_GLOBALS_H

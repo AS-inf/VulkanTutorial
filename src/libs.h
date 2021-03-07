@@ -12,6 +12,7 @@
 #include <vector>
 #include <iostream>
 #include <cstring>
-
+#include <string>
+#include <optional>
 
 #endif //MAIN_CPP_LIBS_H
