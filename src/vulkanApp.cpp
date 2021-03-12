@@ -22,9 +22,11 @@ void vulkanApp::initWindow()
 // create instance and debug layers
 void vulkanApp::initVulkan()
 {
+   
     createInstance();
     setupDebugMessenger();
     pickPhysicalDevice();
+    
 }
 // main app loop
 void vulkanApp::mainLoop()
@@ -87,18 +89,6 @@ void vulkanApp::createInstance()
         throw std::runtime_error("Failed to create instance of vulkanApp!");
     }
     
-    
-    //_____________--Extension List--_______________
-    uint32_t extensionCount= 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-    std::vector<VkExtensionProperties> extensionsEnumerate(extensionCount);
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensionsEnumerate.data());
-    
-    for(const auto& extension: extensionsEnumerate)
-    {
-        std::cout<<'\t'<<extension.extensionName<<'\n';
-    }
-    
 }
 void vulkanApp::setupDebugMessenger()
 {
@@ -119,6 +109,7 @@ void vulkanApp::pickPhysicalDevice()
     {
         throw std::runtime_error("NO PHYSICAL DEVICE DETECTED");
     }
+
     std::vector<VkPhysicalDevice> devices (deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
     
@@ -135,6 +126,7 @@ void vulkanApp::pickPhysicalDevice()
     {
         throw std::runtime_error("NO SUITABLE DEVICE FOUND");
     }
+    
 }
 
 bool vulkanApp::isDeviceSuitable(VkPhysicalDevice device)
