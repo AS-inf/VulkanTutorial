@@ -2,7 +2,7 @@ cmake-build-debug
 .idea
 CMakeLists.txt
 valgrind.log
-
+valgrindSetup
 
 # Prerequisites
 *.d
