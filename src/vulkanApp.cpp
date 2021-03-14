@@ -111,20 +111,25 @@ void vulkanApp::createLogicalDevice()
         throw std::runtime_error("NO PHYSICAL DEVICE!");
     
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-    
-    VkDeviceQueueCreateInfo queueCreateInfo{};
-    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
-    queueCreateInfo.queueCount = 1;
-    float queuePriority= 1.0f;
-    queueCreateInfo.pQueuePriorities= &queuePriority;
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+    float queuePriority = 1.0f;
+    for(uint32_t queueFamily: uniqueQueueFamilies)
+    {
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = queueFamily;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
     
     VkPhysicalDeviceFeatures deviceFeatures{};
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.pQueueCreateInfos= &queueCreateInfo;
-    createInfo.queueCreateInfoCount = 1;
+    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+    createInfo.pQueueCreateInfos= queueCreateInfos.data();
     createInfo.pEnabledFeatures = &deviceFeatures;
     createInfo.enabledExtensionCount = 0;
 
@@ -142,6 +147,7 @@ void vulkanApp::createLogicalDevice()
         throw std::runtime_error("failed to create logical device");
     
     vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
+    vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 }
 
 void vulkanApp::setupDebugMessenger()
@@ -193,7 +199,7 @@ bool vulkanApp::isDeviceSuitable(VkPhysicalDevice device)
     std::cout<<device<<std::endl;
     std::cout<<deviceProperties.deviceName<<std::endl;
     QueueFamilyIndices indices= findQueueFamilies(device);
-    return indices.isComplete();//&& !std::strcmp(deviceProperties.deviceName, "GeForce 840M"); //Intel(R) HD Graphics 4600 (HSW GT2)
+    return indices.isComplete()&& !std::strcmp(deviceProperties.deviceName, "GeForce 840M"); //Intel(R) HD Graphics 4600 (HSW GT2)
 
 }
 

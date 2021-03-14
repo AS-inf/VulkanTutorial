@@ -19,6 +19,8 @@ class vulkanApp
     VkDevice device;
     VkQueue graphicsQueue;
     VkSurfaceKHR surface;
+    VkQueue presentQueue;
+    
 
 public:
     void run();
