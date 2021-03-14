@@ -35,24 +35,30 @@ private:
     void pickPhysicalDevice();
     void createLogicalDevice();
     
-    
+    bool isDeviceSuitable(VkPhysicalDevice device);
     static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-    static bool isDeviceSuitable(VkPhysicalDevice device);
     static bool checkValidationLayerSupport();
-    
     static std::vector<const char*> getRequiredExtensions();
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                                        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                                                        void *pUserData);
-    
     struct QueueFamilyIndices
     {
+        
         std::optional<uint32_t>graphicsFamily;
-        bool isComplete() {return graphicsFamily.has_value();};
+        std::optional<uint32_t>presentFamily;
+        
+        bool isComplete() {
+            return graphicsFamily.has_value() && presentFamily.has_value();
+        };
     };
-    static QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback
+    (
+        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void *pUserData
+    );
+    
 };
 
 

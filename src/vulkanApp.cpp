@@ -192,7 +192,7 @@ bool vulkanApp::isDeviceSuitable(VkPhysicalDevice device)
     vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
     std::cout<<device<<std::endl;
     std::cout<<deviceProperties.deviceName<<std::endl;
-    QueueFamilyIndices indices=findQueueFamilies(device);
+    QueueFamilyIndices indices= findQueueFamilies(device);
     return indices.isComplete();//&& !std::strcmp(deviceProperties.deviceName, "GeForce 840M"); //Intel(R) HD Graphics 4600 (HSW GT2)
 
 }
@@ -204,9 +204,13 @@ vulkanApp::QueueFamilyIndices vulkanApp::findQueueFamilies(VkPhysicalDevice devi
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+    
     int i=0;
     for(const auto &queueFamily : queueFamilies)
     {
+        VkBool32 presentSupport = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+        if(presentSupport) indices.presentFamily=i;
         if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) indices.graphicsFamily=i;
         if (indices.isComplete()) break;
         i++;
