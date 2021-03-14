@@ -27,6 +27,7 @@ void vulkanApp::initVulkan()
     
     createInstance();
     setupDebugMessenger();
+    createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
     
@@ -46,6 +47,7 @@ void vulkanApp::cleanup()
 {
     vkDestroyDevice(device, nullptr);
     if(enableValidationLayers) DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);       // disable validation layers
+    vkDestroySurfaceKHR(instance, surface, nullptr);                                                   // destroy glfwSurface
     vkDestroyInstance(instance, nullptr);                                                              // destroy API instance
     glfwDestroyWindow(window);                                                                                  // destroy GLF window
     glfwTerminate();                                                                                            // glfw cleanup + exit(0)
@@ -95,6 +97,12 @@ void vulkanApp::createInstance()
         throw std::runtime_error("Failed to create instance of vulkanApp!");
     }
     
+}
+
+void vulkanApp::createSurface()
+{
+    if(glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS)
+        throw std::runtime_error("cant create surface");
 }
 
 void vulkanApp::createLogicalDevice()

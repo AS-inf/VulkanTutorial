@@ -18,6 +18,7 @@ class vulkanApp
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
     VkQueue graphicsQueue;
+    VkSurfaceKHR surface;
 
 public:
     void run();
@@ -30,8 +31,8 @@ private:
     
     void createInstance();
     void setupDebugMessenger();
+    void createSurface();
     void pickPhysicalDevice();
-    
     void createLogicalDevice();
     
     
