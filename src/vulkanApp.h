@@ -16,6 +16,8 @@ class vulkanApp
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkDevice device;
+    VkQueue graphicsQueue;
 
 public:
     void run();
@@ -29,6 +31,9 @@ private:
     void createInstance();
     void setupDebugMessenger();
     void pickPhysicalDevice();
+    
+    void createLogicalDevice();
+    
     
     static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
     static bool isDeviceSuitable(VkPhysicalDevice device);
