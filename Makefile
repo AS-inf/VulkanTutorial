@@ -1,11 +1,11 @@
 VULKAN_SDK_PATH = ~/Desktop/Vulkan/1.2.162.1/x86_64
 CFLAGS = -std=c++17 -I$(VULKAN_SDK_PATH)/include -g
-LDFLAGS = -L$(VULKAN_SDK_PATH)/lib `pkg-config --static --libs glfw3` -lvulkan
+LDFLAGS = -L$(VULKAN_SDK_PATH)/lib `pkg-config --static --libs glfw3` -lvulkan -Wl,-M
 
 
 compilation: src clean
 	@mkdir build
-	g++ $(CFLAGS) -o build/Triangle src/main.cpp src/vulkanApp.h src/vulkanApp.cpp src/libs.h src/globals.h src/globals.cpp $(LDFLAGS)
+	g++ $(CFLAGS) -o build/Triangle src/main.cpp src/vulkanApp.h src/vulkanApp.cpp src/libs.h src/globals.h src/globals.cpp $(LDFLAGS)  > compiler.log
 
 .PHONY: clean
 

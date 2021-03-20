@@ -20,7 +20,7 @@ class vulkanApp
     VkQueue graphicsQueue;
     VkSurfaceKHR surface;
     VkQueue presentQueue;
-    
+    const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 public:
     void run();
@@ -38,12 +38,10 @@ private:
     void createLogicalDevice();
     
     bool isDeviceSuitable(VkPhysicalDevice device);
-    static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-    static bool checkValidationLayerSupport();
-    static std::vector<const char*> getRequiredExtensions();
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    
     struct QueueFamilyIndices
     {
-        
         std::optional<uint32_t>graphicsFamily;
         std::optional<uint32_t>presentFamily;
         
@@ -53,13 +51,21 @@ private:
     };
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback
-    (
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void *pUserData
-    );
+    struct SwapChainSupportDetails
+    {
+        VkSurfaceCapabilitiesKHR capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> presentModes;
+    };
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    
+    static std::vector<const char*> getRequiredExtensions();
+    static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    static bool checkValidationLayerSupport();
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                        void *pUserData);
     
 };
 

@@ -131,7 +131,10 @@ void vulkanApp::createLogicalDevice()
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos= queueCreateInfos.data();
     createInfo.pEnabledFeatures = &deviceFeatures;
-    createInfo.enabledExtensionCount = 0;
+    
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+    
 
     if(enableValidationLayers)
     {
@@ -199,8 +202,30 @@ bool vulkanApp::isDeviceSuitable(VkPhysicalDevice device)
     std::cout<<device<<std::endl;
     std::cout<<deviceProperties.deviceName<<std::endl;
     QueueFamilyIndices indices= findQueueFamilies(device);
-    return indices.isComplete()&& !std::strcmp(deviceProperties.deviceName, "GeForce 840M"); //Intel(R) HD Graphics 4600 (HSW GT2)
+    bool extensionsSupported= checkDeviceExtensionSupport(device);
+    bool swapChainAdequate = false;
+    if(extensionsSupported)
+    {
+        SwapChainSupportDetails swapChainSupport= querySwapChainSupport(device);
+        swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+    }
+    return indices.isComplete() && extensionsSupported && swapChainAdequate && !std::strcmp(deviceProperties.deviceName, "GeForce 840M"); //Intel(R) HD Graphics 4600 (HSW GT2)
 
+}
+
+bool vulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice device)
+{
+    uint32_t extensionsCount = 0;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionsCount, nullptr);
+    std::vector<VkExtensionProperties> availableExtensions(extensionsCount);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionsCount, availableExtensions.data());
+    std::set<std::string> requiedExtensions{deviceExtensions.begin(), deviceExtensions.end()};
+    for(const auto& extension :availableExtensions )
+    {
+        requiedExtensions.erase(extension.extensionName);
+    }
+    
+    return requiedExtensions.empty();
 }
 
 vulkanApp::QueueFamilyIndices vulkanApp::findQueueFamilies(VkPhysicalDevice device)
@@ -222,6 +247,34 @@ vulkanApp::QueueFamilyIndices vulkanApp::findQueueFamilies(VkPhysicalDevice devi
         i++;
     }
     return indices;
+}
+
+
+vulkanApp::SwapChainSupportDetails vulkanApp::querySwapChainSupport(VkPhysicalDevice device)
+{
+    SwapChainSupportDetails details;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+    
+    uint32_t formatCount =0;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount,nullptr);
+
+    if (formatCount != 0)
+    {
+        details.formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface,
+        &formatCount, details.formats.data());
+    }
+    
+    uint32_t presentModeCount = 0;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+
+    if (presentModeCount != 0)
+    {
+        details.presentModes.resize(presentModeCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+    }
+    
+    return details;
 }
 
 void vulkanApp::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo)
@@ -286,4 +339,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkanApp::debugCallback(VkDebugUtilsMessageSever
     std::cerr<<"MSev: "<<messageSeverity<<"  Mtype: "<<messageType<<"   validation layer: "<<pCallbackData->pMessage<<std::endl;
     return VK_FALSE;            //always return false (true for errors during callback)
 }
+
+
 
