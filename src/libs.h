@@ -15,5 +15,7 @@
 #include <string>
 #include <optional>
 #include <set>
+#include <cstdint>
+#include <algorithm>
 
 #endif //MAIN_CPP_LIBS_H

@@ -30,6 +30,7 @@ void vulkanApp::initVulkan()
     createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
+    createSwapChain();
     
 }
 
@@ -153,6 +154,48 @@ void vulkanApp::createLogicalDevice()
     vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 }
 
+void vulkanApp::createSwapChain()
+{
+    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
+    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+    VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+    uint32_t imageCount = swapChainSupport.capabilities.minImageCount+1;
+    if(swapChainSupport.capabilities.maxImageExtent >0 && imageCount> swapChainSupport.capabilities.maxImageCount)
+    {
+        imageCount = swapChainSupport.capabilities.maxImageCount;
+    }
+    
+    //creation time
+    VkSwapchainCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = surface;
+    createInfo.minImageCount = imageCount;
+    createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageExtent = extent;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    
+    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(),
+                                     indices.presentFamily.value()};
+    
+    if (indices.graphicsFamily != indices.presentFamily)
+    {
+        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        createInfo.queueFamilyIndexCount = 2;
+        createInfo.pQueueFamilyIndices = queueFamilyIndices;
+    }
+    else
+    {
+        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.queueFamilyIndexCount = 0; // Optional
+        createInfo.pQueueFamilyIndices = nullptr; // Optional
+    }
+    
+}
+
 void vulkanApp::setupDebugMessenger()
 {
     if(!enableValidationLayers) return;
@@ -249,7 +292,6 @@ vulkanApp::QueueFamilyIndices vulkanApp::findQueueFamilies(VkPhysicalDevice devi
     return indices;
 }
 
-
 vulkanApp::SwapChainSupportDetails vulkanApp::querySwapChainSupport(VkPhysicalDevice device)
 {
     SwapChainSupportDetails details;
@@ -276,6 +318,37 @@ vulkanApp::SwapChainSupportDetails vulkanApp::querySwapChainSupport(VkPhysicalDe
     
     return details;
 }
+
+VkSurfaceFormatKHR vulkanApp::chooseSwapSurfaceFormat(const std::vector <VkSurfaceFormatKHR> &availableFormats)
+{
+    for(const auto& format : availableFormats)
+        if(format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            return format;
+    return availableFormats[0];
+}
+
+VkPresentModeKHR vulkanApp::chooseSwapPresentMode(const std::vector <VkPresentModeKHR> &availablePresentModes)
+{
+    for(const auto& presentMode: availablePresentModes)
+        if(presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+            return presentMode;
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D vulkanApp::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities)
+{
+    if(capabilities.currentExtent.width != UINT32_MAX)
+        return capabilities.currentExtent;
+    else
+    {
+        VkExtent2D actualExtent {WIDTH, HEIGHT};
+        actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
+        actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+        return actualExtent;
+    }
+}
+
+
 
 void vulkanApp::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo)
 {
@@ -339,6 +412,4 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkanApp::debugCallback(VkDebugUtilsMessageSever
     std::cerr<<"MSev: "<<messageSeverity<<"  Mtype: "<<messageType<<"   validation layer: "<<pCallbackData->pMessage<<std::endl;
     return VK_FALSE;            //always return false (true for errors during callback)
 }
-
-
 
