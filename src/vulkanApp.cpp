@@ -46,6 +46,7 @@ void vulkanApp::mainLoop()
 // clean memory
 void vulkanApp::cleanup()
 {
+    vkDestroySwapchainKHR(device, swapChain, nullptr);
     vkDestroyDevice(device, nullptr);
     if(enableValidationLayers) DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);       // disable validation layers
     vkDestroySurfaceKHR(instance, surface, nullptr);                                                   // destroy glfwSurface
@@ -161,27 +162,27 @@ void vulkanApp::createSwapChain()
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
     VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount+1;
-    if(swapChainSupport.capabilities.maxImageExtent >0 && imageCount> swapChainSupport.capabilities.maxImageCount)
+    if(swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
     {
         imageCount = swapChainSupport.capabilities.maxImageCount;
     }
     
     //creation time
     VkSwapchainCreateInfoKHR createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = surface;
-    createInfo.minImageCount = imageCount;
-    createInfo.imageFormat = surfaceFormat.format;
-    createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.imageExtent = extent;
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.sType= VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface= surface;
+    createInfo.minImageCount= imageCount;
+    createInfo.imageFormat= surfaceFormat.format;
+    createInfo.imageColorSpace= surfaceFormat.colorSpace;
+    createInfo.imageExtent= extent;
+    createInfo.imageArrayLayers= 1;
+    createInfo.imageUsage= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     
-    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(),
+    QueueFamilyIndices indices= findQueueFamilies(physicalDevice);
+    uint32_t queueFamilyIndices[]= {indices.graphicsFamily.value(),
                                      indices.presentFamily.value()};
     
-    if (indices.graphicsFamily != indices.presentFamily)
+    if (indices.graphicsFamily!= indices.presentFamily)
     {
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         createInfo.queueFamilyIndexCount = 2;
@@ -193,6 +194,23 @@ void vulkanApp::createSwapChain()
         createInfo.queueFamilyIndexCount = 0; // Optional
         createInfo.pQueueFamilyIndices = nullptr; // Optional
     }
+    
+    createInfo.preTransform= swapChainSupport.capabilities.currentTransform;
+    createInfo.compositeAlpha= VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode= presentMode;
+    createInfo.clipped= VK_TRUE;
+    createInfo.oldSwapchain= VK_NULL_HANDLE;
+    if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain)!= VK_SUCCESS)
+    {
+        throw std::runtime_error("filed to create swap chain");
+    }
+    vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
+    swapChainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
+    
+    swapChainImageFormat = surfaceFormat.format;
+    swapChainExtent = extent;
+    
     
 }
 
@@ -347,8 +365,6 @@ VkExtent2D vulkanApp::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilit
         return actualExtent;
     }
 }
-
-
 
 void vulkanApp::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo)
 {

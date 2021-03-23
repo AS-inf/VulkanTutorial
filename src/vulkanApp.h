@@ -21,6 +21,10 @@ class vulkanApp
     VkSurfaceKHR surface;
     VkQueue presentQueue;
     const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    VkSwapchainKHR swapChain;
+    std::vector<VkImage> swapChainImages;
+    VkFormat swapChainImageFormat;
+    VkExtent2D  swapChainExtent;
 
 public:
     void run();
