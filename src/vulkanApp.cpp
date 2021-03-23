@@ -236,7 +236,7 @@ void vulkanApp::createImageViews()
         createInfo.subresourceRange.baseArrayLayer = 0;
         createInfo.subresourceRange.layerCount = 1;
         
-        if(vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i])!= VK_SUCCESS)
+        if(vkCreateImageView(device, &createInfo, nullptr,  &swapChainImageViews[i])!= VK_SUCCESS)
         {
             throw std::runtime_error("cant create Image Views!");
         }
