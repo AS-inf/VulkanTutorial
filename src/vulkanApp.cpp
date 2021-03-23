@@ -223,7 +223,7 @@ void vulkanApp::createImageViews()
     {
         VkImageViewCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image= swapChainImages.at(i);
+        createInfo.image= swapChainImages[i];
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         createInfo.format = swapChainImageFormat;
         createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -236,7 +236,7 @@ void vulkanApp::createImageViews()
         createInfo.subresourceRange.baseArrayLayer = 0;
         createInfo.subresourceRange.layerCount = 1;
         
-        if(vkCreateImageView(device, &createInfo, nullptr, swapChainImageViews.at(i))!= VK_SUCCESS)
+        if(vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i])!= VK_SUCCESS)
         {
             throw std::runtime_error("cant create Image Views!");
         }
