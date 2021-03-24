@@ -4,6 +4,9 @@ CMakeLists.txt
 valgrind.log
 valgrindSetup
 compiler.log
+Makefile
+build
+conf_run.sh
 # Prerequisites
 *.d
 
@@ -36,4 +39,4 @@ compiler.log
 *.exe
 *.out
 *.app
-build
+
