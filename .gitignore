@@ -1,9 +1,10 @@
 cmake-build-debug
 .idea
+.vscode
 valgrind.log
 valgrindSetup
 compiler.log
-makefiler/Makefile
+makefile/Makefile
 build
 conf_run.sh
 # Prerequisites

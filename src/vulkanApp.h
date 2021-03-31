@@ -8,8 +8,6 @@
 #include "libs.h"
 #include "globals.h"
 
-
-
 class vulkanApp
 {
     GLFWwindow* window;
@@ -44,6 +42,7 @@ private:
     void createLogicalDevice();
     void createSwapChain();
     void createImageViews();
+    void createGraphicsPipeline();
     
     bool isDeviceSuitable(VkPhysicalDevice device);
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
@@ -53,7 +52,7 @@ private:
         std::optional<uint32_t>graphicsFamily;
         std::optional<uint32_t>presentFamily;
         
-        bool isComplete() {
+        bool isComplete() const {
             return graphicsFamily.has_value() && presentFamily.has_value();
         };
     };
@@ -70,8 +69,9 @@ private:
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    VkShaderModule createShaderModule(const std::vector<char>& code);
     
-    
+    static std::vector<char> readFile(const std::string& filename);
     static std::vector<const char*> getRequiredExtensions();
     static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
     static bool checkValidationLayerSupport();

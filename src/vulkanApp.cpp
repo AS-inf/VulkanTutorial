@@ -32,6 +32,7 @@ void vulkanApp::initVulkan()
     createLogicalDevice();
     createSwapChain();
     createImageViews();
+    createGraphicsPipeline();
     
 }
 
@@ -212,8 +213,6 @@ void vulkanApp::createSwapChain()
     
     swapChainImageFormat = surfaceFormat.format;
     swapChainExtent = extent;
-    
-    
 }
 
 void vulkanApp::createImageViews()
@@ -242,6 +241,33 @@ void vulkanApp::createImageViews()
         }
         
     }
+    
+}
+
+void vulkanApp::createGraphicsPipeline()
+{
+    std::vector<char> vertShaderCode = readFile("../src/shaders/vert.spv");
+    std::vector<char> fragShaderCode = readFile("../src/shaders/frag.spv");
+    
+    VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+    VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+    
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.pName = "main";
+    
+    VkPipelineShaderStageCreateInfo fragShaderInfo{};
+    fragShaderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderInfo.module = fragShaderModule;
+    fragShaderInfo.pName = "main";
+    
+    VkPipelineShaderStageCreateInfo shaderStages[]={vertShaderStageInfo, fragShaderInfo};
+    
+    vkDestroyShaderModule(device, fragShaderModule, nullptr);
+    vkDestroyShaderModule(device, vertShaderModule, nullptr);
     
 }
 
@@ -397,6 +423,20 @@ VkExtent2D vulkanApp::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilit
     }
 }
 
+VkShaderModule vulkanApp::createShaderModule(const std::vector<char> &code)
+{
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType= VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = code.size();
+    createInfo.pCode= reinterpret_cast<const uint32_t*>(code.data());
+    VkShaderModule shaderModule;
+    if(vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule)!=VK_SUCCESS)
+    {
+        throw std::runtime_error("Shader Module assemble failed");
+    }
+    return shaderModule;
+}
+
 void vulkanApp::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo)
 {
     createInfo={};
@@ -459,6 +499,25 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkanApp::debugCallback(VkDebugUtilsMessageSever
     std::cerr<<"MSev: "<<messageSeverity<<"  Mtype: "<<messageType<<"   validation layer: "<<pCallbackData->pMessage<<std::endl;
     return VK_FALSE;            //always return false (true for errors during callback)
 }
+
+std::vector<char> vulkanApp::readFile(const std::string& filename)
+{
+    
+    std::ifstream file(filename, std::ios::ate| std::ios::binary);
+    if(!file.is_open())
+    {
+        std::string message("file open failed: ");
+        message+=filename;
+        throw std::runtime_error(message.c_str());
+    }
+    size_t fileSize =(size_t)file.tellg();
+    std::vector<char> buffer(fileSize);
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+    file.close();
+    return buffer;
+}
+
 
 
 
