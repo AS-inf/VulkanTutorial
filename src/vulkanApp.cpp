@@ -48,6 +48,7 @@ void vulkanApp::mainLoop()
 // clean memory
 void vulkanApp::cleanup()
 {
+    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     for(auto imageView : swapChainImageViews) vkDestroyImageView(device, imageView, nullptr);
     vkDestroySwapchainKHR(device, swapChain, nullptr);
     vkDestroyDevice(device, nullptr);
@@ -222,7 +223,7 @@ void vulkanApp::createImageViews()
     {
         VkImageViewCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image= swapChainImages[i];
+        createInfo.image = swapChainImages[i];
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         createInfo.format = swapChainImageFormat;
         createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -264,7 +265,99 @@ void vulkanApp::createGraphicsPipeline()
     fragShaderInfo.module = fragShaderModule;
     fragShaderInfo.pName = "main";
     
-    VkPipelineShaderStageCreateInfo shaderStages[]={vertShaderStageInfo, fragShaderInfo};
+    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderInfo};
+    
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.vertexBindingDescriptionCount = 0;
+    vertexInputInfo.pVertexBindingDescriptions=nullptr;
+    vertexInputInfo.vertexAttributeDescriptionCount = 0;
+    vertexInputInfo.pVertexAttributeDescriptions =nullptr;
+    
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssembly.primitiveRestartEnable = VK_FALSE;
+    
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.height = (float)swapChainExtent.height;
+    viewport.width = (float )swapChainExtent.width;
+    viewport.maxDepth = 1.0f;
+    viewport.minDepth = 0.0f;
+    
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent =  swapChainExtent;
+    
+    
+    VkPipelineViewportStateCreateInfo viewportState{};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.pViewports = & viewport;
+    viewportState.scissorCount = 1;
+    viewportState.pScissors = &scissor;
+    
+    VkPipelineRasterizationStateCreateInfo  rasterizer{};
+    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.depthClampEnable = VK_FALSE;
+    rasterizer.rasterizerDiscardEnable = VK_FALSE;
+    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.lineWidth = 1.0f;
+    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizer.depthBiasEnable = VK_FALSE;
+    rasterizer.depthBiasConstantFactor = 0.0f;
+    rasterizer.depthBiasClamp = 0.0f;
+    rasterizer.depthBiasSlopeFactor = 0.0f;
+    
+    VkPipelineMultisampleStateCreateInfo multisampling{};
+    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.sampleShadingEnable = VK_FALSE;
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.minSampleShading = 1.0f; // Optional
+    multisampling.pSampleMask = nullptr; // Optional
+    multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
+    multisampling.alphaToOneEnable = VK_FALSE; // Optional
+    
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+                                          VK_COLOR_COMPONENT_G_BIT |
+                                          VK_COLOR_COMPONENT_B_BIT |
+                                          VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.blendEnable = VK_FALSE;
+    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; //Optional
+    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; //Optional
+    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
+    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; //Optional
+    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; //    Optional
+    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+    
+    VkPipelineColorBlendStateCreateInfo colorBlending{};
+    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlending.logicOpEnable = VK_FALSE;
+    colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments = &colorBlendAttachment;
+    colorBlending.blendConstants[0] = 0.0f; // Optional
+    colorBlending.blendConstants[1] = 0.0f; // Optional
+    colorBlending.blendConstants[2] = 0.0f; // Optional
+    colorBlending.blendConstants[3] = 0.0f; // Optional
+    
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 0; // Optional
+    pipelineLayoutInfo.pSetLayouts = nullptr; // Optional
+    pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
+    
+    pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
+    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create pipeline layout!");
+    }
+    
+    
     
     vkDestroyShaderModule(device, fragShaderModule, nullptr);
     vkDestroyShaderModule(device, vertShaderModule, nullptr);
@@ -285,7 +378,7 @@ void vulkanApp::setupDebugMessenger()
 
 void vulkanApp::pickPhysicalDevice()
 {
-    uint32_t deviceCount=0;
+    uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
     if(deviceCount == 0)
     {
@@ -319,8 +412,8 @@ bool vulkanApp::isDeviceSuitable(VkPhysicalDevice device)
     vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
     std::cout<<device<<std::endl;
     std::cout<<deviceProperties.deviceName<<std::endl;
-    QueueFamilyIndices indices= findQueueFamilies(device);
-    bool extensionsSupported= checkDeviceExtensionSupport(device);
+    QueueFamilyIndices indices = findQueueFamilies(device);
+    bool extensionsSupported = checkDeviceExtensionSupport(device);
     bool swapChainAdequate = false;
     if(extensionsSupported)
     {
@@ -426,9 +519,9 @@ VkExtent2D vulkanApp::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilit
 VkShaderModule vulkanApp::createShaderModule(const std::vector<char> &code)
 {
     VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType= VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = code.size();
-    createInfo.pCode= reinterpret_cast<const uint32_t*>(code.data());
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
     VkShaderModule shaderModule;
     if(vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule)!=VK_SUCCESS)
     {
@@ -460,7 +553,7 @@ bool vulkanApp::checkValidationLayerSupport()
     
     for(const char *layerName : validationLayers)
     {
-        bool layerFound=false;
+        bool layerFound = false;
         for(const auto &layerProperties : availableLayers)
         {
             if(strcmp(layerName, layerProperties.layerName) == 0)
@@ -482,8 +575,8 @@ std::vector<const char *> vulkanApp::getRequiredExtensions()
 {
     uint32_t glfwExtensionsCount=0;
     const char **glfwExtensions;
-    glfwExtensions=glfwGetRequiredInstanceExtensions(&glfwExtensionsCount);
-    std::vector<const char *> extensions(glfwExtensions, glfwExtensions+glfwExtensionsCount);
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionsCount);
+    std::vector<const char* > extensions(glfwExtensions, glfwExtensions+glfwExtensionsCount);
     if(enableValidationLayers)
     {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
