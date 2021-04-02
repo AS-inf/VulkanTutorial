@@ -24,7 +24,10 @@ class vulkanApp
     VkFormat swapChainImageFormat;
     VkExtent2D  swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
+    VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
+    
     
 
 public:
@@ -43,6 +46,7 @@ private:
     void createLogicalDevice();
     void createSwapChain();
     void createImageViews();
+    void createRenderPass();
     void createGraphicsPipeline();
     
     bool isDeviceSuitable(VkPhysicalDevice device);
