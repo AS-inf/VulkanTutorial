@@ -18,7 +18,7 @@ void vulkanApp::initWindow()
     glfwInit();                                                                         //API Init
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);                                       //set non OpenGL api
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);                                         //set window as not resizable
-    window=glfwCreateWindow(WIDTH, HEIGHT, "AS", nullptr, nullptr); // create window and store in vulkanApp.window
+    window=glfwCreateWindow((int)WIDTH, (int)HEIGHT, "AS", nullptr, nullptr); // create window and store in vulkanApp.window
 }
 
 // create instance and debug layers
@@ -34,6 +34,7 @@ void vulkanApp::initVulkan()
     createImageViews();
     createRenderPass();
     createGraphicsPipeline();
+    createFramebuffers();
     
 }
 
@@ -49,6 +50,7 @@ void vulkanApp::mainLoop()
 // clean memory
 void vulkanApp::cleanup()
 {
+    for(auto framebuffer : swapChainFramebuffers)vkDestroyFramebuffer(device, framebuffer, nullptr);
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     vkDestroyRenderPass(device, renderPass, nullptr);
@@ -278,7 +280,7 @@ void vulkanApp::createRenderPass()
     
     if(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass)!= VK_SUCCESS)
     {
-        std::runtime_error("RenderPassCreation Failed");
+        throw std::runtime_error("RenderPassCreation Failed");
     }
 }
 
@@ -666,4 +668,24 @@ std::vector<char> vulkanApp::readFile(const std::string& filename)
     file.read(buffer.data(), fileSize);
     file.close();
     return buffer;
+}
+
+void vulkanApp::createFramebuffers()
+{
+    swapChainFramebuffers.resize(swapChainImageViews.size());
+    for(size_t i=0; i<swapChainImageViews.size(); i++)
+    {
+        VkImageView attachments[]={swapChainImageViews[i]};
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = renderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = swapChainExtent.width;
+        framebufferInfo.height = swapChainExtent.height;
+        framebufferInfo.layers = 1;
+        if (vkCreateFramebuffer(device, &framebufferInfo, nullptr,&swapChainFramebuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create framebuffer!");
+        }
+    }
 }
