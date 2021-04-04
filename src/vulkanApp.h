@@ -28,8 +28,8 @@ class vulkanApp
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
     std::vector<VkFramebuffer> swapChainFramebuffers;
-    
-    
+    VkCommandPool commandPool;
+    std::vector<VkCommandBuffer> commandBuffers;
     
 
 public:
@@ -51,9 +51,21 @@ private:
     void createRenderPass();
     void createGraphicsPipeline();
     void createFramebuffers();
+    void createCommandPool();
+    void createCommandBuffers();
     
     bool isDeviceSuitable(VkPhysicalDevice device);
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    
+    VkShaderModule createShaderModule(const std::vector<char>& code);
+    static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    
+    static std::vector<char> readFile(const std::string& filename);
+    static std::vector<const char*> getRequiredExtensions();
+    static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    static bool checkValidationLayerSupport();
     
     struct QueueFamilyIndices
     {
@@ -74,15 +86,6 @@ private:
     };
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     
-    static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-    static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-    VkShaderModule createShaderModule(const std::vector<char>& code);
-    
-    static std::vector<char> readFile(const std::string& filename);
-    static std::vector<const char*> getRequiredExtensions();
-    static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-    static bool checkValidationLayerSupport();
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                         VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
