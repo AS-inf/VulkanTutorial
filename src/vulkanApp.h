@@ -30,7 +30,11 @@ class vulkanApp
     std::vector<VkFramebuffer> swapChainFramebuffers;
     VkCommandPool commandPool;
     std::vector<VkCommandBuffer> commandBuffers;
-    
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    std::vector<VkFence> inFlightFences;
+    std::vector<VkFence> imagesInFlight;
+    size_t currentFrame{0};
 
 public:
     void run();
@@ -53,9 +57,13 @@ private:
     void createFramebuffers();
     void createCommandPool();
     void createCommandBuffers();
+    void createSyncObjects();
     
-    bool isDeviceSuitable(VkPhysicalDevice device);
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    void drawFrame();
+    
+    
+    bool isDeviceSuitable(VkPhysicalDevice physDevice);
+    bool checkDeviceExtensionSupport(VkPhysicalDevice physDevice);
     
     VkShaderModule createShaderModule(const std::vector<char>& code);
     static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
@@ -76,7 +84,7 @@ private:
             return graphicsFamily.has_value() && presentFamily.has_value();
         };
     };
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physDevice);
     
     struct SwapChainSupportDetails
     {
@@ -84,12 +92,12 @@ private:
         std::vector<VkSurfaceFormatKHR> formats;
         std::vector<VkPresentModeKHR> presentModes;
     };
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physDevice);
     
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                         VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                                                        void *pUserData);
+                                                        [[maybe_unused]] void *pUserData);
     
 };
 

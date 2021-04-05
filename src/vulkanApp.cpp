@@ -37,6 +37,7 @@ void vulkanApp::initVulkan()
     createFramebuffers();
     createCommandPool();
     createCommandBuffers();
+    createSyncObjects();
     
 }
 
@@ -46,12 +47,20 @@ void vulkanApp::mainLoop()
     while(!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
+        drawFrame();
     }
+    vkDeviceWaitIdle(device);
 }
 
 // clean memory
 void vulkanApp::cleanup()
 {
+    for(size_t i= 0; i<MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
+        vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
+        vkDestroyFence(device, inFlightFences[i], nullptr);
+    }
     vkDestroyCommandPool(device, commandPool, nullptr);
     for(auto framebuffer : swapChainFramebuffers)vkDestroyFramebuffer(device, framebuffer, nullptr);
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
@@ -285,6 +294,19 @@ void vulkanApp::createRenderPass()
     {
         throw std::runtime_error("RenderPassCreation Failed");
     }
+    
+    //      REMAKE -
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+    
+    
 }
 
 void vulkanApp::createGraphicsPipeline()
@@ -490,7 +512,7 @@ void vulkanApp::createCommandBuffers()
         renderPassInfo.framebuffer = swapChainFramebuffers[i];
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = swapChainExtent;
-        VkClearValue clearColor = {0.6f, 0.0f, 0.0f, 1.0f};
+        VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
         
@@ -511,6 +533,80 @@ void vulkanApp::createCommandBuffers()
     
 }
 
+void vulkanApp::createSyncObjects()
+{
+    imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+    imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
+    
+    
+    
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    
+    for(size_t i = 0; i<MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create sync objects!");
+        }
+    }
+    
+}
+
+void vulkanApp::drawFrame()
+{
+    //      REMAKE -
+    uint32_t imageIndex;
+    vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+    vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    
+    if(imagesInFlight[imageIndex] != VK_NULL_HANDLE)
+    {
+        vkWaitForFences(device, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
+    }
+    imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+    
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+    VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+    vkResetFences(device, 1, &inFlightFences[currentFrame]);
+    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) !=VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to submit draw command buffer!");
+    }
+    
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+    
+    VkSwapchainKHR swapChains[] = {swapChain};
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pResults = nullptr; // Optional
+    
+    vkQueuePresentKHR(presentQueue, &presentInfo);
+    
+    currentFrame %= ++currentFrame%MAX_FRAMES_IN_FLIGHT;
+    
+}
 
 void vulkanApp::setupDebugMessenger()
 {
@@ -536,11 +632,11 @@ void vulkanApp::pickPhysicalDevice()
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
     
-    for(const auto &device : devices)
+    for(const auto &itDevice : devices)
     {
-        if(isDeviceSuitable(device))
+        if(isDeviceSuitable(itDevice))
         {
-            physicalDevice=device;
+            physicalDevice=itDevice;
             break;
         }
         
@@ -552,54 +648,54 @@ void vulkanApp::pickPhysicalDevice()
     
 }
 
-bool vulkanApp::isDeviceSuitable(VkPhysicalDevice device)
+bool vulkanApp::isDeviceSuitable(VkPhysicalDevice physDevice)
 {
     VkPhysicalDeviceProperties deviceProperties;
     VkPhysicalDeviceFeatures deviceFeatures;
-    vkGetPhysicalDeviceProperties(device, &deviceProperties);
-    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-    std::cout<<device<<std::endl;
+    vkGetPhysicalDeviceProperties(physDevice, &deviceProperties);
+    vkGetPhysicalDeviceFeatures(physDevice, &deviceFeatures);
+    std::cout<<physDevice<<std::endl;
     std::cout<<deviceProperties.deviceName<<std::endl;
-    QueueFamilyIndices indices = findQueueFamilies(device);
-    bool extensionsSupported = checkDeviceExtensionSupport(device);
+    QueueFamilyIndices indices = findQueueFamilies(physDevice);
+    bool extensionsSupported = checkDeviceExtensionSupport(physDevice);
     bool swapChainAdequate = false;
     if(extensionsSupported)
     {
-        SwapChainSupportDetails swapChainSupport= querySwapChainSupport(device);
+        SwapChainSupportDetails swapChainSupport= querySwapChainSupport(physDevice);
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
     return indices.isComplete() && extensionsSupported && swapChainAdequate && !std::strcmp(deviceProperties.deviceName, "GeForce 840M"); //Intel(R) HD Graphics 4600 (HSW GT2)
 
 }
 
-bool vulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice device)
+bool vulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice physDevice)
 {
     uint32_t extensionsCount = 0;
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionsCount, nullptr);
+    vkEnumerateDeviceExtensionProperties(physDevice, nullptr, &extensionsCount, nullptr);
     std::vector<VkExtensionProperties> availableExtensions(extensionsCount);
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionsCount, availableExtensions.data());
-    std::set<std::string> requiedExtensions{deviceExtensions.begin(), deviceExtensions.end()};
+    vkEnumerateDeviceExtensionProperties(physDevice, nullptr, &extensionsCount, availableExtensions.data());
+    std::set<std::string> requiredExtensions{deviceExtensions.begin(), deviceExtensions.end()};
     for(const auto& extension :availableExtensions )
     {
-        requiedExtensions.erase(extension.extensionName);
+        requiredExtensions.erase(extension.extensionName);
     }
     
-    return requiedExtensions.empty();
+    return requiredExtensions.empty();
 }
 
-vulkanApp::QueueFamilyIndices vulkanApp::findQueueFamilies(VkPhysicalDevice device)
+vulkanApp::QueueFamilyIndices vulkanApp::findQueueFamilies(VkPhysicalDevice physDevice)
 {
     QueueFamilyIndices indices;
     uint32_t queueFamilyCount=0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, nullptr);
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+    vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, queueFamilies.data());
     
     int i=0;
     for(const auto &queueFamily : queueFamilies)
     {
         VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(physDevice, i, surface, &presentSupport);
         if(presentSupport) indices.presentFamily=i;
         if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) indices.graphicsFamily=i;
         if (indices.isComplete()) break;
@@ -608,28 +704,28 @@ vulkanApp::QueueFamilyIndices vulkanApp::findQueueFamilies(VkPhysicalDevice devi
     return indices;
 }
 
-vulkanApp::SwapChainSupportDetails vulkanApp::querySwapChainSupport(VkPhysicalDevice device)
+vulkanApp::SwapChainSupportDetails vulkanApp::querySwapChainSupport(VkPhysicalDevice physDevice)
 {
     SwapChainSupportDetails details;
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physDevice, surface, &details.capabilities);
     
     uint32_t formatCount =0;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount,nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physDevice, surface, &formatCount, nullptr);
 
     if (formatCount != 0)
     {
         details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface,
-        &formatCount, details.formats.data());
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physDevice, surface,
+                                             &formatCount, details.formats.data());
     }
     
     uint32_t presentModeCount = 0;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physDevice, surface, &presentModeCount, nullptr);
 
     if (presentModeCount != 0)
     {
         details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physDevice, surface, &presentModeCount, details.presentModes.data());
     }
     
     return details;
@@ -735,9 +831,9 @@ std::vector<const char *> vulkanApp::getRequiredExtensions()
 VKAPI_ATTR VkBool32 VKAPI_CALL vulkanApp::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                         VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                         const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-                                                        void *pUserData)
+                                                        [[maybe_unused]] void *pUserData)
 {
-    std::cerr<<"MSev: "<<messageSeverity<<"  Mtype: "<<messageType<<"   validation layer: "<<pCallbackData->pMessage<<std::endl;
+    std::cerr<<"MSev: "<<messageSeverity<<"  M_type: "<<messageType<<"   validation layer: "<<pCallbackData->pMessage<<std::endl;
     return VK_FALSE;            //always return false (true for errors during callback)
 }
 
@@ -758,6 +854,9 @@ std::vector<char> vulkanApp::readFile(const std::string& filename)
     file.close();
     return buffer;
 }
+
+
+
 
 
 

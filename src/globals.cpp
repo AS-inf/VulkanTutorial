@@ -36,6 +36,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 const unsigned int WIDTH = 800;
 const  unsigned int  HEIGHT = 600;
 const std::vector <const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
+const int MAX_FRAMES_IN_FLIGHT = 2;
 #ifdef NDBUG
     const bool enableValidationLayers = false;
 #else

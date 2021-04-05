@@ -8,7 +8,6 @@
 #include "libs.h"
 
 //FUNCTIONS
-
 VkResult CreateDebugUtilsMessengerEXT(
      VkInstance instance,
      const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
@@ -26,5 +25,6 @@ extern const unsigned int WIDTH;
 extern const  unsigned int  HEIGHT;
 extern const std::vector <const char*> validationLayers;
 extern const bool enableValidationLayers;
+extern const int MAX_FRAMES_IN_FLIGHT;
 
 #endif //VULKANTUTORIAL_GLOBALS_H
