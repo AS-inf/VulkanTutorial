@@ -10,20 +10,20 @@
 
 class vulkanApp
 {
-    GLFWwindow* window;
-    VkInstance instance;
-    VkDebugUtilsMessengerEXT debugMessenger;
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkDevice device;
-    VkQueue graphicsQueue;
-    VkSurfaceKHR surface;
-    VkQueue presentQueue;
-    const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-    VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
-    VkFormat swapChainImageFormat;
-    VkExtent2D  swapChainExtent;
-    std::vector<VkImageView> swapChainImageViews;
+    GLFWwindow* window;                                                                             // glfw window handle init in initWindow() rm in cleanup()
+    VkInstance instance;                                                                            // holds main apl info init in createInstance()
+    VkDebugUtilsMessengerEXT debugMessenger;                                                        //
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;                                               // handle for physical device
+    VkDevice device;                                                                                // handle for logical device
+    VkQueue graphicsQueue;                                                                          //
+    VkSurfaceKHR surface;                                                                           //
+    VkQueue presentQueue;                                                                           //
+    const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};            //
+    VkSwapchainKHR swapChain;                                                                       //
+    std::vector<VkImage> swapChainImages;                                                           //
+    VkFormat swapChainImageFormat;                                                                  //
+    VkExtent2D  swapChainExtent;                                                                    //
+    std::vector<VkImageView> swapChainImageViews;                                                   //
     VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
@@ -35,6 +35,7 @@ class vulkanApp
     std::vector<VkFence> inFlightFences;
     std::vector<VkFence> imagesInFlight;
     size_t currentFrame{0};
+
 
 public:
     void run();
@@ -80,7 +81,7 @@ private:
         std::optional<uint32_t>graphicsFamily;
         std::optional<uint32_t>presentFamily;
         
-        bool isComplete() const {
+        [[nodiscard]] bool isComplete() const {
             return graphicsFamily.has_value() && presentFamily.has_value();
         };
     };
@@ -98,6 +99,7 @@ private:
                                                         VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                                         [[maybe_unused]] void *pUserData);
+    static void show( std::bitset<8> z, const char* s);
     
 };
 

@@ -18,5 +18,6 @@
 #include <cstdint>
 #include <algorithm>
 #include <fstream>
+#include <bitset>
 
 #endif //MAIN_CPP_LIBS_H

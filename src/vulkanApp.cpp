@@ -128,10 +128,40 @@ void vulkanApp::createSurface()
         throw std::runtime_error("cant create surface");
 }
 
+void vulkanApp::pickPhysicalDevice()
+{
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+    if(deviceCount == 0)
+    {
+        throw std::runtime_error("NO PHYSICAL DEVICE DETECTED");
+    }
+    
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+    
+    for(const auto &itDevice : devices)
+    {
+        if(isDeviceSuitable(itDevice))
+        {
+            physicalDevice=itDevice;
+            break;
+        }
+        
+    }
+    if(physicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("NO SUITABLE DEVICE FOUND");
+    }
+    
+}
+
 void vulkanApp::createLogicalDevice()
 {
     if(physicalDevice == VK_NULL_HANDLE)
         throw std::runtime_error("NO PHYSICAL DEVICE!");
+    
+
     
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -174,6 +204,7 @@ void vulkanApp::createLogicalDevice()
     
     vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
     vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+    
 }
 
 void vulkanApp::createSwapChain()
@@ -501,23 +532,25 @@ void vulkanApp::createCommandBuffers()
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags = 0; // Optional
         beginInfo.pInheritanceInfo = nullptr; // Optional
-        if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to begin recording command buffer!");
-        }
-    
+        
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = renderPass;
         renderPassInfo.framebuffer = swapChainFramebuffers[i];
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = swapChainExtent;
+        
         VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
         
+        if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to begin recording command buffer!");
+        }
+        
         vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);            //bind pipeline to comandbuffer
         vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);           // Magic numbers ;*
         vkCmdEndRenderPass(commandBuffers[i]);
     
@@ -527,10 +560,6 @@ void vulkanApp::createCommandBuffers()
         }
         
     }
-    
-   
-    
-    
 }
 
 void vulkanApp::createSyncObjects()
@@ -539,8 +568,6 @@ void vulkanApp::createSyncObjects()
     renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
     imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
-    
-    
     
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -572,7 +599,6 @@ void vulkanApp::drawFrame()
         vkWaitForFences(device, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
     }
     imagesInFlight[imageIndex] = inFlightFences[currentFrame];
-    
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
@@ -591,12 +617,12 @@ void vulkanApp::drawFrame()
         throw std::runtime_error("failed to submit draw command buffer!");
     }
     
+    
+    VkSwapchainKHR swapChains[] = {swapChain};
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
-    
-    VkSwapchainKHR swapChains[] = {swapChain};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
@@ -618,34 +644,6 @@ void vulkanApp::setupDebugMessenger()
     {
         throw std::runtime_error("failed to set up debug messenger");
     }
-}
-
-void vulkanApp::pickPhysicalDevice()
-{
-    uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-    if(deviceCount == 0)
-    {
-        throw std::runtime_error("NO PHYSICAL DEVICE DETECTED");
-    }
-    
-    std::vector<VkPhysicalDevice> devices(deviceCount);
-    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
-    
-    for(const auto &itDevice : devices)
-    {
-        if(isDeviceSuitable(itDevice))
-        {
-            physicalDevice=itDevice;
-            break;
-        }
-        
-    }
-    if(physicalDevice == VK_NULL_HANDLE)
-    {
-        throw std::runtime_error("NO SUITABLE DEVICE FOUND");
-    }
-    
 }
 
 bool vulkanApp::isDeviceSuitable(VkPhysicalDevice physDevice)
@@ -690,6 +688,12 @@ vulkanApp::QueueFamilyIndices vulkanApp::findQueueFamilies(VkPhysicalDevice phys
     vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, nullptr);
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, queueFamilies.data());
+    
+    for(auto &q_family : queueFamilies)
+    {
+        std::cout << "Queue number: "  + std::to_string(q_family.queueCount) << std::endl;
+        show((std::bitset<8>)q_family.queueFlags, "flags: ");
+    }
     
     int i=0;
     for(const auto &queueFamily : queueFamilies)
@@ -795,6 +799,8 @@ bool vulkanApp::checkValidationLayerSupport()
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
     
+
+    
     for(const char *layerName : validationLayers)
     {
         bool layerFound = false;
@@ -855,7 +861,12 @@ std::vector<char> vulkanApp::readFile(const std::string& filename)
     return buffer;
 }
 
-
+void vulkanApp::show( std::bitset<8> z, const char* s)
+{
+    std::cout << "┌──────────────┬────────────────┐\n";
+    std::cout << "│    "<<s<<"   │    " <<z<<"    │\n";
+    std::cout << "└──────────────┴────────────────┘\n";
+}
 
 
 
