@@ -17,8 +17,9 @@ void vulkanApp::initWindow()
 {
     glfwInit();                                                                         //API Init
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);                                       //set non OpenGL api
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);                                         //set window as not resizable
     window=glfwCreateWindow((int)WIDTH, (int)HEIGHT, "AS", nullptr, nullptr); // create window and store in vulkanApp.window
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, vulkanApp::framebufferResizeCallback);
 }
 
 // create instance and debug layers
@@ -55,6 +56,7 @@ void vulkanApp::mainLoop()
 // clean memory
 void vulkanApp::cleanup()
 {
+    cleanupSwapChain();
     for(size_t i= 0; i<MAX_FRAMES_IN_FLIGHT; i++)
     {
         vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -62,18 +64,24 @@ void vulkanApp::cleanup()
         vkDestroyFence(device, inFlightFences[i], nullptr);
     }
     vkDestroyCommandPool(device, commandPool, nullptr);
-    for(auto framebuffer : swapChainFramebuffers)vkDestroyFramebuffer(device, framebuffer, nullptr);
-    vkDestroyPipeline(device, graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-    vkDestroyRenderPass(device, renderPass, nullptr);
-    for(auto imageView : swapChainImageViews) vkDestroyImageView(device, imageView, nullptr);
-    vkDestroySwapchainKHR(device, swapChain, nullptr);
     vkDestroyDevice(device, nullptr);
     if(enableValidationLayers) DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);       // disable validation layers
     vkDestroySurfaceKHR(instance, surface, nullptr);                                                   // destroy glfwSurface
     vkDestroyInstance(instance, nullptr);                                                              // destroy API instance
     glfwDestroyWindow(window);                                                                                  // destroy GLF window
     glfwTerminate();                                                                                            // glfw cleanup + exit(0)
+}
+
+void vulkanApp::cleanupSwapChain()
+{
+    for(size_t i = 0; i<swapChainFramebuffers.size(); i++){vkDestroyFramebuffer(device, swapChainFramebuffers[i], nullptr);}
+    vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+    vkDestroyPipeline(device, graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+    vkDestroyRenderPass(device, renderPass, nullptr);
+    for(size_t i = 0; i<swapChainImageViews.size(); i++){ vkDestroyImageView(device, swapChainImageViews[i], nullptr);}
+    vkDestroySwapchainKHR(device, swapChain, nullptr);
+    
 }
 
 //create info -> instance
@@ -161,7 +169,16 @@ void vulkanApp::createLogicalDevice()
     if(physicalDevice == VK_NULL_HANDLE)
         throw std::runtime_error("NO PHYSICAL DEVICE!");
     
-
+    uint32_t queueFamilyCount=0;
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+    
+    for(auto &q_family : queueFamilies)
+    {
+        std::cout << "Queue number: "  + std::to_string(q_family.queueCount) << std::endl;
+        show((std::bitset<8>)q_family.queueFlags, "flags: ");
+    }
     
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -229,6 +246,7 @@ void vulkanApp::createSwapChain()
     createInfo.imageExtent= extent;
     createInfo.imageArrayLayers= 1;
     createInfo.imageUsage= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    
     
     QueueFamilyIndices indices= findQueueFamilies(physicalDevice);
     uint32_t queueFamilyIndices[]= {indices.graphicsFamily.value(),
@@ -592,8 +610,16 @@ void vulkanApp::drawFrame()
     //      REMAKE -
     uint32_t imageIndex;
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-    vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-    
+    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    if(result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        recreateSwapChain();
+        return;
+    }
+    else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+    {
+        throw std::runtime_error("failed to acquire swapchain image!");
+    }
     if(imagesInFlight[imageIndex] != VK_NULL_HANDLE)
     {
         vkWaitForFences(device, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
@@ -628,10 +654,40 @@ void vulkanApp::drawFrame()
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr; // Optional
     
-    vkQueuePresentKHR(presentQueue, &presentInfo);
+    result = vkQueuePresentKHR(presentQueue, &presentInfo);
+    if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized)
+    {
+        framebufferResized =false;
+        recreateSwapChain();
+    }
+    else if(result != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to present swap chain image");
+    }
     
     currentFrame %= ++currentFrame%MAX_FRAMES_IN_FLIGHT;
     
+}
+
+void vulkanApp::recreateSwapChain()
+{
+    int width=0, height = 0;
+    glfwGetFramebufferSize(window, &width, &height);
+    while(width == 0 || height == 0)
+    {
+        glfwGetFramebufferSize(window, &width, &height);
+        glfwWaitEvents();
+    }
+    vkDeviceWaitIdle(device);
+    
+    cleanupSwapChain();
+    
+    createSwapChain();
+    createImageViews();
+    createRenderPass();
+    createGraphicsPipeline();
+    createFramebuffers();
+    createCommandBuffers();
 }
 
 void vulkanApp::setupDebugMessenger()
@@ -688,13 +744,7 @@ vulkanApp::QueueFamilyIndices vulkanApp::findQueueFamilies(VkPhysicalDevice phys
     vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, nullptr);
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(physDevice, &queueFamilyCount, queueFamilies.data());
-    
-    for(auto &q_family : queueFamilies)
-    {
-        std::cout << "Queue number: "  + std::to_string(q_family.queueCount) << std::endl;
-        show((std::bitset<8>)q_family.queueFlags, "flags: ");
-    }
-    
+
     int i=0;
     for(const auto &queueFamily : queueFamilies)
     {
@@ -757,7 +807,10 @@ VkExtent2D vulkanApp::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilit
         return capabilities.currentExtent;
     else
     {
-        VkExtent2D actualExtent {WIDTH, HEIGHT};
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+        
+        VkExtent2D actualExtent {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
         actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
         actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
         return actualExtent;
@@ -776,6 +829,12 @@ VkShaderModule vulkanApp::createShaderModule(const std::vector<char> &code)
         throw std::runtime_error("Shader Module assemble failed");
     }
     return shaderModule;
+}
+
+void vulkanApp::framebufferResizeCallback(GLFWwindow *window, int width, int height)
+{
+    auto app = reinterpret_cast<vulkanApp*>(glfwGetWindowUserPointer(window));
+    app->framebufferResized =true;
 }
 
 void vulkanApp::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo)
@@ -867,6 +926,8 @@ void vulkanApp::show( std::bitset<8> z, const char* s)
     std::cout << "│    "<<s<<"   │    " <<z<<"    │\n";
     std::cout << "└──────────────┴────────────────┘\n";
 }
+
+
 
 
 

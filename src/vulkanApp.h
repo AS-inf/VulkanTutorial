@@ -35,7 +35,8 @@ class vulkanApp
     std::vector<VkFence> inFlightFences;
     std::vector<VkFence> imagesInFlight;
     size_t currentFrame{0};
-
+    bool framebufferResized{false};
+    
 
 public:
     void run();
@@ -45,6 +46,8 @@ private:
     void initVulkan();
     void mainLoop();
     void cleanup();
+    
+    void cleanupSwapChain();
     
     void createInstance();
     void setupDebugMessenger();
@@ -62,19 +65,21 @@ private:
     
     void drawFrame();
     
+    void recreateSwapChain();
     
     bool isDeviceSuitable(VkPhysicalDevice physDevice);
     bool checkDeviceExtensionSupport(VkPhysicalDevice physDevice);
     
     VkShaderModule createShaderModule(const std::vector<char>& code);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-    static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     
     static std::vector<char> readFile(const std::string& filename);
     static std::vector<const char*> getRequiredExtensions();
     static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
     static bool checkValidationLayerSupport();
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
     
     struct QueueFamilyIndices
     {
@@ -100,6 +105,7 @@ private:
                                                         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                                         [[maybe_unused]] void *pUserData);
     static void show( std::bitset<8> z, const char* s);
+    
     
 };
 
