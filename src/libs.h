@@ -16,8 +16,9 @@
 #include <optional>
 #include <set>
 #include <cstdint>
-#include <algorithm>
-#include <fstream>
-#include <bitset>
+#include <algorithm>                    //
+#include <fstream>                      //read shaders
+#include <bitset>                       //bitset of physics devices queues
+#include <glm/glm.hpp>                  //glm::vectors
 
 #endif //MAIN_CPP_LIBS_H
