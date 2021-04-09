@@ -7,6 +7,7 @@
 
 #include "libs.h"
 #include "globals.h"
+#include "Vertex.h"
 
 class vulkanApp
 {
