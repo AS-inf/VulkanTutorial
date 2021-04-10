@@ -8,6 +8,7 @@
 #include "libs.h"
 #include "globals.h"
 #include "Vertex.h"
+#include "Triangle.h"
 
 class vulkanApp
 {
@@ -37,6 +38,9 @@ class vulkanApp
     std::vector<VkFence> imagesInFlight;
     size_t currentFrame{0};
     bool framebufferResized{false};
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
+    Triangle triangle;
     
 
 public:
@@ -61,6 +65,7 @@ private:
     void createGraphicsPipeline();
     void createFramebuffers();
     void createCommandPool();
+    void createVertexBuffer();
     void createCommandBuffers();
     void createSyncObjects();
     
@@ -70,6 +75,8 @@ private:
     
     bool isDeviceSuitable(VkPhysicalDevice physDevice);
     bool checkDeviceExtensionSupport(VkPhysicalDevice physDevice);
+    
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
     
     VkShaderModule createShaderModule(const std::vector<char>& code);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
