@@ -9,6 +9,7 @@
 #include "globals.h"
 #include "Vertex.h"
 #include "Triangle.h"
+#include "Square.h"
 
 class vulkanApp
 {
@@ -40,7 +41,10 @@ class vulkanApp
     size_t currentFrame{0};
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
-    Triangle triangle;
+    VkBuffer indexBuffer;
+    VkDeviceMemory indexBufferMemory;
+    Triangle triangle{};
+    Square square{};
     
 
 public:
@@ -65,6 +69,7 @@ private:
     void createFramebuffers();
     void createCommandPool();
     void createVertexBuffer();
+    void createIndexBuffer();
     void createCommandBuffers();
     void createSyncObjects();
     void drawFrame();

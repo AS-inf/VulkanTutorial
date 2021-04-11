@@ -40,6 +40,7 @@ void vulkanApp::initVulkan()
     createFramebuffers();
     createCommandPool();
     createVertexBuffer();
+    createIndexBuffer();
     createCommandBuffers();
     createSyncObjects();
     
@@ -63,6 +64,9 @@ void vulkanApp::cleanup()
     
     vkDestroyBuffer(device, vertexBuffer, nullptr);
     vkFreeMemory(device, vertexBufferMemory, nullptr);
+    
+    vkDestroyBuffer(device, indexBuffer, nullptr);
+    vkFreeMemory(device, indexBufferMemory, nullptr);
     
     for(size_t i= 0; i<MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -547,6 +551,49 @@ void vulkanApp::createCommandPool()
     
 }
 
+void vulkanApp::createVertexBuffer()
+{
+    VkDeviceSize bufferSize = sizeof(square.vertices[0])*square.vertices.size();
+    
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 stagingBuffer, stagingBufferMemory);
+    
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, square.vertices.data(), (size_t)bufferSize);               //Triangle > buffer
+    vkUnmapMemory(device, stagingBufferMemory);
+    
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+    copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+    
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
+void vulkanApp::createIndexBuffer()
+{
+    VkDeviceSize bufferSize = sizeof(square.indices[0])*square.indices.size();
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, stagingBuffer, stagingBufferMemory);
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, square.indices.data(), (size_t) bufferSize);
+    vkUnmapMemory(device, stagingBufferMemory);
+    
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer,indexBufferMemory);
+    
+    copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    
+}
+
 void vulkanApp::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer, VkDeviceMemory &bufferMemory)
 {
     VkBufferCreateInfo bufferInfo{};
@@ -572,29 +619,6 @@ void vulkanApp::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemo
         throw std::runtime_error("failed to allocate vertex buffer memory!");
     }
     vkBindBufferMemory(device, buffer, bufferMemory, 0);
-}
-
-void vulkanApp::createVertexBuffer()
-{
-    VkDeviceSize bufferSize = sizeof(triangle.vertices[0])*triangle.vertices.size();
-    
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 stagingBuffer, stagingBufferMemory);
-    
-    void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, triangle.vertices.data(), (size_t)bufferSize);               //Triangle > buffer
-    vkUnmapMemory(device, stagingBufferMemory);
-    
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-    copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-    
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
 void vulkanApp::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
@@ -673,7 +697,9 @@ void vulkanApp::createCommandBuffers()
         VkBuffer vertexBuffers[] = {vertexBuffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-        vkCmdDraw(commandBuffers[i], static_cast<uint32_t>(triangle.vertices.size()),1, 0, 0); // Magic numbers ;*
+        vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        
+        vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(square.indices.size()),1, 0, 0, 0); // Magic numbers ;*
 
         
         vkCmdEndRenderPass(commandBuffers[i]);
@@ -1045,6 +1071,8 @@ uint32_t vulkanApp::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags pr
     }
     throw std::runtime_error("there is no suitable mem type!");
 }
+
+
 
 
 
