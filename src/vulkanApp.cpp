@@ -82,14 +82,15 @@ void vulkanApp::cleanup()
     glfwTerminate();                                                                                            // glfw cleanup + exit(0)
 }
 
+// clean swapchain
 void vulkanApp::cleanupSwapChain()
 {
-    for(size_t i = 0; i<swapChainFramebuffers.size(); i++){vkDestroyFramebuffer(device, swapChainFramebuffers[i], nullptr);}
+    for(auto & swapChainFramebuffer : swapChainFramebuffers){vkDestroyFramebuffer(device, swapChainFramebuffer, nullptr);}
     vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     vkDestroyRenderPass(device, renderPass, nullptr);
-    for(size_t i = 0; i<swapChainImageViews.size(); i++){ vkDestroyImageView(device, swapChainImageViews[i], nullptr);}
+    for(auto & swapChainImageView : swapChainImageViews){ vkDestroyImageView(device, swapChainImageView, nullptr);}
     vkDestroySwapchainKHR(device, swapChain, nullptr);
     
 }
@@ -546,38 +547,87 @@ void vulkanApp::createCommandPool()
     
 }
 
-void vulkanApp::createVertexBuffer()
+void vulkanApp::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer, VkDeviceMemory &bufferMemory)
 {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = sizeof(triangle.vertices[0])*triangle.vertices.size();
-    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    bufferInfo.size = size;
+    bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     
-    if(vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer)!= VK_SUCCESS)
+    if(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer)!= VK_SUCCESS)
     {
         throw std::runtime_error("failed to create vertex buffer");
     }
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device, vertexBuffer, &memRequirements);
+    vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
     
     VkMemoryAllocateInfo allocateInfo{};
     allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocateInfo.allocationSize = memRequirements.size;
-    allocateInfo.memoryTypeIndex =findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    allocateInfo.memoryTypeIndex =findMemoryType(memRequirements.memoryTypeBits, properties);
     
-    if (vkAllocateMemory(device, &allocateInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS)
+    if (vkAllocateMemory(device, &allocateInfo, nullptr, &bufferMemory) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to allocate vertex buffer memory!");
     }
-    vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
+    vkBindBufferMemory(device, buffer, bufferMemory, 0);
+}
+
+void vulkanApp::createVertexBuffer()
+{
+    VkDeviceSize bufferSize = sizeof(triangle.vertices[0])*triangle.vertices.size();
+    
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 stagingBuffer, stagingBufferMemory);
     
     void* data;
-    vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
-    memcpy(data, triangle.vertices.data(), (size_t)bufferInfo.size);               //Triangle > buffer
-    vkUnmapMemory(device, vertexBufferMemory);
+    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, triangle.vertices.data(), (size_t)bufferSize);               //Triangle > buffer
+    vkUnmapMemory(device, stagingBufferMemory);
     
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+    copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
     
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
+void vulkanApp::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+{
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = commandPool;
+    allocInfo.commandBufferCount = 1;
+    
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+    
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    VkBufferCopy copyRegion{};
+    copyRegion.srcOffset = 0;
+    copyRegion.dstOffset = 0;
+    copyRegion.size = size;
+    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+    vkEndCommandBuffer(commandBuffer);
+    
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(graphicsQueue);
+    
+    vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
 
 void vulkanApp::createCommandBuffers()
@@ -950,10 +1000,8 @@ std::vector<const char *> vulkanApp::getRequiredExtensions()
     return extensions;
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL vulkanApp::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                                        const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-                                                        [[maybe_unused]] void *pUserData)
+VKAPI_ATTR VkBool32 VKAPI_CALL vulkanApp::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                        const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,[[maybe_unused]] void *pUserData)
 {
     std::cerr<<"MSev: "<<messageSeverity<<"  M_type: "<<messageType<<"   validation layer: "<<pCallbackData->pMessage<<std::endl;
     return VK_FALSE;            //always return false (true for errors during callback)
@@ -969,7 +1017,7 @@ std::vector<char> vulkanApp::readFile(const std::string& filename)
         message+=filename;
         throw std::runtime_error(message.c_str());
     }
-    size_t fileSize =(size_t)file.tellg();
+    size_t fileSize =static_cast<size_t>(file.tellg());
     std::vector<char> buffer(fileSize);
     file.seekg(0);
     file.read(buffer.data(), fileSize);
@@ -997,8 +1045,6 @@ uint32_t vulkanApp::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags pr
     }
     throw std::runtime_error("there is no suitable mem type!");
 }
-
-
 
 
 

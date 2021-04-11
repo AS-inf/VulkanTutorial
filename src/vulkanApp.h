@@ -13,6 +13,7 @@
 class vulkanApp
 {
     GLFWwindow* window;                                                                             // glfw window handle init in initWindow() rm in cleanup()
+    bool framebufferResized{false};                                                                 // resize window -> true
     VkInstance instance;                                                                            // holds main apl info init in createInstance()
     VkDebugUtilsMessengerEXT debugMessenger;                                                        //
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;                                               // handle for physical device
@@ -37,7 +38,6 @@ class vulkanApp
     std::vector<VkFence> inFlightFences;
     std::vector<VkFence> imagesInFlight;
     size_t currentFrame{0};
-    bool framebufferResized{false};
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
     Triangle triangle;
@@ -51,7 +51,6 @@ private:
     void initVulkan();
     void mainLoop();
     void cleanup();
-    
     void cleanupSwapChain();
     
     void createInstance();
@@ -68,11 +67,10 @@ private:
     void createVertexBuffer();
     void createCommandBuffers();
     void createSyncObjects();
-    
     void drawFrame();
-    
     void recreateSwapChain();
-    
+    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     bool isDeviceSuitable(VkPhysicalDevice physDevice);
     bool checkDeviceExtensionSupport(VkPhysicalDevice physDevice);
     
@@ -108,10 +106,8 @@ private:
     };
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physDevice);
     
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                                        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                                                        [[maybe_unused]] void *pUserData);
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, [[maybe_unused]] void *pUserData);
     static void show( std::bitset<8> z, const char* s);
     
     
