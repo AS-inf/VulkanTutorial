@@ -43,6 +43,14 @@ class vulkanApp
     VkDeviceMemory vertexBufferMemory;
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
+    
+    std::vector<VkBuffer> uniformBuffers;
+    std::vector<VkDeviceMemory> uniformBuffersMemory;
+    
+    VkDescriptorSetLayout descriptorSetLayout;
+    VkDescriptorPool descriptorPool;
+    std::vector<VkDescriptorSet> descriptorSets;
+    
     Triangle triangle{};
     Square square{};
     
@@ -115,6 +123,17 @@ private:
                                                         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, [[maybe_unused]] void *pUserData);
     static void show( std::bitset<8> z, const char* s);
     
+    
+    struct UniformBufferObject{
+        glm::mat4 model;
+        glm::mat4 view;
+        glm::mat4 proj;
+    };
+    void createDescriptorSetLayout();
+    void createUniformBuffers();
+    void updateUniformBuffer(uint32_t currentImage);
+    void createDescriptorPool();
+    void createDescriptorSets();
     
 };
 
